@@ -5,9 +5,7 @@
  * Time: 18:13
  * 
  * To change this template use Tools | Options | Coding | Edit Standard Headers.
- */
-  
- 
+ */ 
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -15,21 +13,22 @@ using System.Net;
 using System.Threading;
 using System.Reflection;
 using System.Timers;
+
+
 namespace srcdsStarter
 {
 	class Program		
 	{
 		//Global
-		static string srcds_name="DOD2018";
-		static string srcds_folder="c:\\Program Files\\srcds.dod.07122018";
+		static string srcds_name="DOD2018";  
+		static string srcds_folder="                 f:\\soft\\Games\\Steam\\srcds.dod.07122018             ";
 		static string srcds_mod="dod";
 		static string srcds_ip="172.19.1.44";
 		static int srcds_port=28015;
 		static string srcds_cmd="";
 		static string srcds_rcon_password="JA2PI";
 		
-		string srcds_run="srcds.exe";
-		
+		string srcds_run="srcds.exe";		
 			
 		public static void Main(string[] args)
 		{
@@ -52,8 +51,20 @@ namespace srcdsStarter
 			Console.WriteLine("ip=	"+srcds_ip);
 			Console.WriteLine("port=	"+srcds_port);
 			Console.WriteLine("command line=	"+srcds_cmd);
-			//Test that all reade to start
-			if (!Directory.Exists(srcds_folder))
+			
+			FolderIO.CheckFolderString(ref srcds_folder);
+			
+			
+			//Test that all ready to start
+			if (!Directory.Exists(srcds_folder))//Folder with srcds exist
+				{
+				Console.ForegroundColor=ConsoleColor.Red;
+				Console.WriteLine("ERR: Folder {0} not found.",srcds_folder);
+				Console.ResetColor();
+				ScriptFinish(true);
+				System.Environment.Exit(4);				
+				}
+			if (!Directory.Exists(srcds_folder))//File srcds.exe  exist
 				{
 				Console.ForegroundColor=ConsoleColor.Red;
 				Console.WriteLine("ERR: Folder {0} not found.",srcds_folder);

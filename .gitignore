@@ -1,3 +1,4 @@
 *.bak
 /srcdsStarter/bin/*
 /srcdsStarter/obj/*
+/srcdsStarter/lib/*
