@@ -1,4 +1,5 @@
-﻿/*
+﻿//-> Check that this host has correct ip,  asighted in  cmd params
+/*
  * Created by SharpDevelop.
  * User: skorik
  * Date: 12.12.2018
@@ -12,8 +13,13 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Reflection;
+using System.Net.Sockets;
 using System.Timers;
-
+using System.Net.NetworkInformation;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Collections;
+using System.ComponentModel;
 
 namespace srcdsStarter
 {
@@ -23,12 +29,13 @@ namespace srcdsStarter
 		static string srcds_name="DOD2018";  
 		static string srcds_folder="                 f:\\soft\\Games\\Steam\\srcds.dod.07122018             ";
 		static string srcds_mod="dod";
-		static string srcds_ip="10.80.68.220";
-		static int srcds_port=28015;
+		static System.Net.IPAddress  srcds_ip=System.Net.IPAddress.Parse("10.80.68.220");
+		static int srcds_port=27015;
 		static string srcds_cmd="";
-		static string srcds_rcon_password="JA2PI";
+		//static string srcds_rcon_password="JA2PI";
 		
-		static string srcds_run="srcds.exe";		
+		static string srcds_run="srcds.exe";	
+		static bool ReadyToRun=true; //Flag that condition, enironment, port, ip ready to start srcds.exe
 			
 		public static void Main(string[] args)
 		{
@@ -51,10 +58,7 @@ namespace srcdsStarter
 			Console.WriteLine("mod=	"+srcds_mod);
 			Console.WriteLine("ip=	"+srcds_ip);
 			Console.WriteLine("port=	"+srcds_port);
-			Console.WriteLine("command line=	"+srcds_cmd);
-			
-			
-			
+			Console.WriteLine("command line=	"+srcds_cmd);				
 			//
 			//Test that all ready to start
 			//
@@ -81,12 +85,46 @@ namespace srcdsStarter
 				Console.ResetColor();
 				ScriptFinish(true);
 				System.Environment.Exit(4);				
-				}		
+				}			
+			//
+			// Check IP:PORT
+			//
 			
-			Console.Title = title + " " + srcds_name + " "+DateTime.Now.ToString();
+			IPEndPoint BusySocket=BusyTCPSocket();
+			while (BusySocket!=null)
+				{
+				ReadyToRun=false;				
+				Console.ForegroundColor=ConsoleColor.Yellow;
+    			Console.Write("Socket TCP {1}:{0} are busy. Trying to close process ",BusySocket.Port,BusySocket.Address);        		
+    			int PID = GetPortProcessID(BusySocket.Port);
+    			if (PID!=0)
+	    			{
+	    			Console.WriteLine("PID {0}",PID);        			
+	    			}
+    			else    				
+        			Console.WriteLine("PID undefined");
+    			int ParentPID=Process.GetProcessById(PID).Parent().Id;
+    			Console.WriteLine("parentPID=",ParentPID);
+    			
+    			BusySocket=	BusyTCPSocket();
+				}
+			
+			BusySocket=	BusyUDPSocket();
+			if (BusySocket!=null)
+				{
+				Console.ForegroundColor=ConsoleColor.Yellow;
+    			Console.WriteLine("Socket UDP {1}:{0} are busy. Trying to close process",BusySocket.Port,BusySocket.Address);
+        		ReadyToRun=false;
+				}
+				
+			
+			
 			//
 			// Run srcds.exe
 			//
+			Console.Title = title + " " + srcds_name + " "+DateTime.Now.ToString();
+			if (ReadyToRun)
+			{			
 			Console.ForegroundColor=ConsoleColor.White;
 			Console.Write("\nRun {0} ",srcds_run);
 			Console.ResetColor();
@@ -132,7 +170,7 @@ namespace srcdsStarter
 	        	Console.WriteLine("ERRORLEVEL "+srcds.ExitCode);
 	        	Console.ResetColor();
 	        	}
-        	
+			}
         	
         	
 			ScriptFinish(true);
@@ -153,5 +191,105 @@ namespace srcdsStarter
 			    }
 			}
 		}
+		public static string GetPortPID(int Port){
+		string procName="";
+		//try { procName = Process.GetProcessById(pid).ProcessName; } 
+		//catch (Exception) { procName = "-";}
+		return procName;
+		}
+		//****************************************************	
+		public static IPEndPoint BusyTCPSocket(){			
+		//****************************************************
+		IPEndPoint result = null;
+		IPGlobalProperties properties = IPGlobalProperties.GetIPGlobalProperties();
+		IPEndPoint[]  endPoints = (properties.GetActiveTcpListeners());
+		int i_max=endPoints.Length;
+		for (int i=0;i!=i_max;i++)
+			{
+			if (endPoints[i].Port==srcds_port)
+				{
+				if (endPoints[i].Address.Equals(srcds_ip) || endPoints[i].Address.Equals(System.Net.IPAddress.Parse("0.0.0.0")))
+    				{
+					result=endPoints[i];
+    				break;
+    				}
+				}
+			}
+		return result;
+		}
+		//****************************************************	
+		public static IPEndPoint BusyUDPSocket(){			
+		//****************************************************
+		IPEndPoint result = null;
+		IPGlobalProperties properties = IPGlobalProperties.GetIPGlobalProperties();
+		IPEndPoint[]  endPoints = (properties.GetActiveUdpListeners());
+		int i_max=endPoints.Length;
+		for (int i=0;i!=i_max;i++)
+			{
+			if (endPoints[i].Port==srcds_port)
+				{
+				if (endPoints[i].Address.Equals(srcds_ip) || endPoints[i].Address.Equals(System.Net.IPAddress.Parse("0.0.0.0")))
+    				{
+					result=endPoints[i];
+    				break;
+    				}
+				}
+			}
+		return result;
+		}
+		//****************************************************	
+		public static int GetPortProcessID(int Port){			
+		//****************************************************
+		//C# Sample to list all the active TCP and UDP connections using Windows Form appl
+		//https://code.msdn.microsoft.com/windowsdesktop/C-Sample-to-list-all-the-4817b58f/view/Discussions#content			
+		//Build your own netstat.exe with c#
+		//https://timvw.be/2007/09/09/build-your-own-netstatexe-with-c/
+		int result=0;
+		Process netstat = new Process();
+		netstat.StartInfo.RedirectStandardOutput = true;
+		netstat.StartInfo.RedirectStandardError = true; //ComSpec=C:\Windows\system32\cmd.exe
+		netstat.StartInfo.CreateNoWindow = true;
+		netstat.StartInfo.WorkingDirectory="C:\\Windows\\system32\\";	//SystemRoot=C:\Windows, windir	c:\Windows\System32\findstr.exe c:\Windows\System32\netstat.exe	
+		netstat.StartInfo.FileName = netstat.StartInfo.WorkingDirectory + "cmd.exe";			
+		netstat.StartInfo.UseShellExecute=false;	//https://msdn.microsoft.com/ru-ru/library/system.diagnostics.processstartinfo.workingdirectory(v=vs.110).aspx			
+		//ok netstat.StartInfo.Arguments+="/C netstat -nao | findstr 27015";
+		netstat.StartInfo.Arguments+="/Q /C FOR /F \"tokens=5\" %p IN ('netstat -nao ^| findstr /i LISTENING ^| findstr 27015') do echo %p ";			
+		#if (DEBUG)
+		Debug.WriteLine("GetPortProcessID WorkingDirectory={0}",netstat.StartInfo.WorkingDirectory);
+		Debug.WriteLine("GetPortProcessID FileName={0}",netstat.StartInfo.FileName);
+		Debug.WriteLine(netstat.StartInfo.Arguments);				
+		#endif	
+		try 
+			{					
+		        netstat.Start();
+        	}        	
+    	catch (Exception e)
+        	{
+        		Console.ForegroundColor=ConsoleColor.Red;	        	    
+        	    Console.WriteLine(e.Message);
+        	    Console.ResetColor();
+        	}
+    	
+		string output =netstat.StandardOutput.ReadToEnd();  
+		string err =netstat.StandardError.ReadToEnd();	
+		#if (DEBUG)
+		Debug.WriteLine(output);			
+		Debug.WriteLine(err);			
+		#endif
+    	netstat.WaitForExit();
+    	if (netstat.ExitCode>0) 
+        	{
+    		#if (DEBUG)
+        	Console.ForegroundColor=ConsoleColor.Red;
+        	Console.WriteLine("ERRORLEVEL "+netstat.ExitCode);
+        	Console.ResetColor();
+        	#endif
+        	}
+    	else
+    		result=Int32.Parse(output);
+		return result;
+		}
+		
 	}
+
 }

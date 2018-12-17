@@ -39,6 +39,9 @@
     <Compile Include="lib\MyLib.NET\FolderIO.cs">
       <Link>FolderIO.cs</Link>
     </Compile>
+    <Compile Include="lib\MyLib.NET\Process.cs">
+      <Link>Process.cs</Link>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
