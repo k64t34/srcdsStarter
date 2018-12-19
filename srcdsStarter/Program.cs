@@ -95,17 +95,48 @@ namespace srcdsStarter
 				{
 				ReadyToRun=false;				
 				Console.ForegroundColor=ConsoleColor.Yellow;
-    			Console.Write("Socket TCP {1}:{0} are busy. Trying to close process ",BusySocket.Port,BusySocket.Address);        		
-    			int PID = GetPortProcessID(BusySocket.Port);
+    			Console.Write("Socket TCP {1}:{0} are busy ",BusySocket.Port,BusySocket.Address);        		
+    			int PID = GetPortProcessID(BusySocket.Port);    			
     			if (PID!=0)
 	    			{
-	    			Console.WriteLine("PID {0}",PID);        			
+    				Console.Write("by PID {0} ",PID);
+    				string socket_process_name=Process.GetProcessById(PID).ProcessName;
+    				Console.WriteLine("of process {0}",socket_process_name);
+    				if (socket_process_name!="srcds")
+    				{
+	    				Console.ForegroundColor=ConsoleColor.Red;
+	        			Console.WriteLine("Socket process is not srcds. Starter will close.");
+						ScriptFinish(true);
+	        			System.Environment.Exit(5);        			
+    				}
+    				uint ParentPID = K64t.ProcessUtil.GetParentProcessID(PID);
+    				if (ParentPID!=0)
+    					{
+    					Console.Write("Socket process has parent PID {0}",ParentPID);
+    					socket_process_name=Process.GetProcessById((int)ParentPID).ProcessName;
+    					Console.Write(" process {0}.",socket_process_name);
+    					//Проверить что родительский процесс вообще запущен
+    					if (socket_process_name=="srcdsStarter")
+    						{
+    						Console.WriteLine("Try to kill old srcdsStarter.");
+    						Process.GetProcessById((int)ParentPID).Kill();
+    						}
+    					}
+    				//.Trying to close process PID {0}
+    				//if 
+    				//uint ParentPID = K64t.ProcessUtil.GetParentProcessID(PID);
+    			    //Console.WriteLine("parentPID=",ParentPID);
 	    			}
     			else    				
-        			Console.WriteLine("PID undefined");
-    			int ParentPID=Process.GetProcessById(PID).Parent().Id;
-    			Console.WriteLine("parentPID=",ParentPID);
+    				{
+        			Console.WriteLine("by unknown process.");
+        			Console.ForegroundColor=ConsoleColor.Red;
+        			Console.WriteLine("Starter will close.");
+        			ScriptFinish(true);
+        			System.Environment.Exit(5);
+    				}
     			
+    			Thread.Sleep(1000);
     			BusySocket=	BusyTCPSocket();
 				}
 			
