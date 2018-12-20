@@ -1,4 +1,12 @@
-﻿//-> Check that this host has correct ip,  asighted in  cmd params
+﻿//[X]  Cycle start srcds
+//[ ] Test param 0<port<65535
+//[ ] Test param ip belong localhost
+//[ ] Hide windows after sucsesfull start srcds
+//[ ]  add command and key
+//[ ]  Check that this host has correct ip,  asighted in  cmd params
+//[ ]  if server have the same parameters then just restart it over rcon
+
+
 /*
  * Created by SharpDevelop.
  * User: skorik
@@ -13,26 +21,25 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Reflection;
-using System.Net.Sockets;
-using System.Timers;
-using System.Net.NetworkInformation;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Collections;
-using System.ComponentModel;
+//using System.Net.Sockets;
+//using System.Timers;
+//using System.Collections.Generic;
+//using System.Runtime.InteropServices;
+//using System.Collections;
+//using System.ComponentModel;
 
 namespace srcdsStarter
 {
 	class Program		
 	{
 		//Global
-		static string srcds_name="DOD2018";  
-		static string srcds_folder="                 f:\\soft\\Games\\Steam\\srcds.dod.07122018             ";
-		static string srcds_mod="dod";
-		static System.Net.IPAddress  srcds_ip=System.Net.IPAddress.Parse("10.80.68.220");
+		static string srcds_name;  
+		static string srcds_folder="";
+		static string srcds_mod;
+		static System.Net.IPAddress  srcds_ip/*=System.Net.IPAddress.Parse("10.80.68.220")*/;
 		static int srcds_port=27015;
-		static string srcds_cmd="";
-		//static string srcds_rcon_password="JA2PI";
+		static string srcds_cmd;
+		static string srcds_rcon_password;
 		
 		static string srcds_run="srcds.exe";	
 		static bool ReadyToRun=true; //Flag that condition, enironment, port, ip ready to start srcds.exe
@@ -40,18 +47,32 @@ namespace srcdsStarter
 		public static void Main(string[] args)
 		{
 			string title="Start Source dedicated server ver "+(FileVersionInfo.GetVersionInfo((Assembly.GetExecutingAssembly()).Location)).ProductVersion+": ";
-			Console.Title=title;
+			Console.Title=title;			
 			Console.ForegroundColor=ConsoleColor.Magenta;
 			Console.WriteLine("***************************************************");						
 			Console.WriteLine(title);			
 			Console.WriteLine("***************************************************");			
 			Console.ResetColor();
 			
-			/*if (args.Length < 1) {
-				Console.WriteLine("Usage: srcdsStarter <Server_name> <path> <mod> <ip> <port> <cmd> ");
+			int argsLength=args.Length;
+			if (argsLength < 6) {
+				Console.WriteLine("Usage: srcdsStarter <Server_name> <path> <mod> <ip> <port> <cmd> [<rcon_password>] ");
 				ScriptFinish(true);
 				System.Environment.Exit(0);
-			}*/
+			}
+			
+			//for (int i=0;i!=argsLength;i++)
+			//	{
+			//	Console.WriteLine("arg({0})={1}",i,args[i]);
+			//	}
+			srcds_name=args[0];
+			srcds_folder=args[1];
+			srcds_mod=args[2];
+			srcds_ip=System.Net.IPAddress.Parse(args[3]);
+			srcds_port=Int32.Parse(args[4]);
+			srcds_cmd=args[5];
+			//srcds_rcon_password
+				
 			FolderIO.CheckFolderString(ref srcds_folder);
 			Console.WriteLine("name=	"+srcds_name);
 			Console.WriteLine("folder=	"+srcds_folder);
@@ -88,15 +109,14 @@ namespace srcdsStarter
 				}			
 			//
 			// Check IP:PORT
-			//
-			
-			IPEndPoint BusySocket=BusyTCPSocket();
+			//			
+			IPEndPoint BusySocket=NetIO.BusyTCPSocket(srcds_port,srcds_ip);
 			while (BusySocket!=null)
 				{
 				ReadyToRun=false;				
 				Console.ForegroundColor=ConsoleColor.Yellow;
     			Console.Write("Socket TCP {1}:{0} are busy ",BusySocket.Port,BusySocket.Address);        		
-    			int PID = GetPortProcessID(BusySocket.Port);    			
+    			int PID = NetIO.GetPortProcessID(BusySocket.Port);    			
     			if (PID!=0)
 	    			{
     				Console.Write("by PID {0} ",PID);
@@ -109,7 +129,8 @@ namespace srcdsStarter
 						ScriptFinish(true);
 	        			System.Environment.Exit(5);        			
     				}
-    				uint ParentPID = K64t.ProcessUtil.GetParentProcessID(PID);
+    				int ParentPID = (int)K64t.ProcessUtil.GetParentProcessID(PID);
+    				if (!K64t.ProcessUtil.IsProcessRunning(ParentPID))ParentPID=0;
     				if (ParentPID!=0)
     					{
     					Console.Write("Socket process has parent PID {0}",ParentPID);
@@ -122,10 +143,54 @@ namespace srcdsStarter
     						Process.GetProcessById((int)ParentPID).Kill();
     						}
     					}
-    				//.Trying to close process PID {0}
-    				//if 
-    				//uint ParentPID = K64t.ProcessUtil.GetParentProcessID(PID);
-    			    //Console.WriteLine("parentPID=",ParentPID);
+			    		//Close srcds over RCON		
+			    		/*
+			 			Console.ForegroundColor=ConsoleColor.Cyan;
+			 			Console.WriteLine("Try to close srcds over rcon.");
+			    		SourceRcon.SourceRcon RCon = new SourceRcon.SourceRcon();
+						RCon.Errors += new SourceRcon.StringOutput(ErrorOutput);
+						RCon.ServerOutput += new SourceRcon.StringOutput(ConsoleOutput);			
+						try 
+						{
+							RCon.Connect(new IPEndPoint(srcds_ip, srcds_port),srcds_rcon_password);
+							for (int i=0;i!=10;i++)
+							{
+							Thread.Sleep(1000);
+							if (RCon.Connected) break;
+							}
+							
+						}
+						catch (Exception e)
+						{
+							Console.WriteLine(e.Message.ToString());
+						}
+						if (RCon.Connected)
+					    {
+						 	Console.ForegroundColor=ConsoleColor.Green;								
+							Console.WriteLine("Connected");Console.ResetColor();
+							
+							try {
+							RCon.ServerCommand("quit");
+							}catch (Exception e){Console.ForegroundColor=ConsoleColor.Red;Console.WriteLine(e.Message);}
+							Thread.Sleep(100);
+						}
+						else
+						{
+							Console.ForegroundColor=ConsoleColor.Red;
+							Console.WriteLine("ERR: No connection.");
+							Console.ResetColor();
+						}			
+						Thread.Sleep(1000);
+						RCon=null;
+						*/				
+					//Trying to close srcds process
+					Console.WriteLine("Closing srcds process with PID {0}...",PID);
+					Process.GetProcessById((int)PID).Kill();
+					Thread.Sleep(1000);
+					if (K64t.ProcessUtil.IsProcessRunning(PID))
+						Console.WriteLine("ERR");
+					else	
+						Console.WriteLine("OK");
 	    			}
     			else    				
     				{
@@ -137,16 +202,16 @@ namespace srcdsStarter
     				}
     			
     			Thread.Sleep(1000);
-    			BusySocket=	BusyTCPSocket();
+    			BusySocket=	NetIO.BusyTCPSocket(srcds_port,srcds_ip);
 				}
-			
-			BusySocket=	BusyUDPSocket();
+			ReadyToRun=true;
+			/*BusySocket=	BusyUDPSocket();
 			if (BusySocket!=null)
 				{
 				Console.ForegroundColor=ConsoleColor.Yellow;
     			Console.WriteLine("Socket UDP {1}:{0} are busy. Trying to close process",BusySocket.Port,BusySocket.Address);
         		ReadyToRun=false;
-				}
+				}*/
 				
 			
 			
@@ -155,10 +220,8 @@ namespace srcdsStarter
 			//
 			Console.Title = title + " " + srcds_name + " "+DateTime.Now.ToString();
 			if (ReadyToRun)
-			{			
-			Console.ForegroundColor=ConsoleColor.White;
-			Console.Write("\nRun {0} ",srcds_run);
-			Console.ResetColor();
+			{
+		
 			Process srcds = new Process();
 			srcds.StartInfo.RedirectStandardOutput = true;
 			srcds.StartInfo.RedirectStandardError = true;
@@ -170,37 +233,43 @@ namespace srcdsStarter
 			srcds.StartInfo.Arguments+=" -game "+srcds_mod;
 			srcds.StartInfo.Arguments+=" +ip "+srcds_ip;
 			srcds.StartInfo.Arguments+=" -port "+srcds_port;
-			srcds.StartInfo.Arguments+=" +hostname "+srcds_name;
-			Console.WriteLine(srcds.StartInfo.Arguments);
+			srcds.StartInfo.Arguments+=" +hostname "+srcds_name;			
 			srcds.StartInfo.UseShellExecute = false;
 			#if (bbDEBUG)
 				srcds.StartInfo.RedirectStandardOutput = true;
 			#else	
 				srcds.StartInfo.RedirectStandardOutput = false;
 			#endif	
-			try 
-				{					
-			        srcds.Start();
-            	}        	
-        	catch (Exception e)
-	        	{
-	        		Console.ForegroundColor=ConsoleColor.Red;	        	    
-	        	    Console.WriteLine(e.Message);
-	        	    Console.ResetColor();
-	        	}
-        	#if (bbDEBUG)
-			string output =srcds.StandardOutput.ReadToEnd();  
-			string err =srcds.StandardError.ReadToEnd();	
-			Console.WriteLine(output);			
-			Console.WriteLine(err);			
-			#endif
-        	srcds.WaitForExit();
-        	if (srcds.ExitCode>0) 
-	        	{
-	        	Console.ForegroundColor=ConsoleColor.Red;
-	        	Console.WriteLine("ERRORLEVEL "+srcds.ExitCode);
-	        	Console.ResetColor();
-	        	}
+			while (true)
+			{
+				Console.ForegroundColor=ConsoleColor.White;
+				Console.Write("{1} \nRun {0} ",srcds_run,DateTime.Now);
+				Console.ResetColor();
+				Console.WriteLine(srcds.StartInfo.Arguments);
+				try 
+					{					
+				        srcds.Start();
+	            	}        	
+	        	catch (Exception e)
+		        	{
+		        		Console.ForegroundColor=ConsoleColor.Red;	        	    
+		        	    Console.WriteLine(e.Message);
+		        	    Console.ResetColor();
+		        	}
+	        	#if (bbDEBUG)
+				string output =srcds.StandardOutput.ReadToEnd();  
+				string err =srcds.StandardError.ReadToEnd();	
+				Console.WriteLine(output);			
+				Console.WriteLine(err);			
+				#endif
+	        	srcds.WaitForExit();
+	        	if (srcds.ExitCode>0) 
+		        	{
+		        	Console.ForegroundColor=ConsoleColor.Red;
+		        	Console.WriteLine("ERRORLEVEL "+srcds.ExitCode);
+		        	Console.ResetColor();
+		        	}
+				}
 			}
         	
         	
@@ -221,105 +290,12 @@ namespace srcdsStarter
 			      Thread.Sleep(100);
 			    }
 			}
-		}
-		public static string GetPortPID(int Port){
-		string procName="";
-		//try { procName = Process.GetProcessById(pid).ProcessName; } 
-		//catch (Exception) { procName = "-";}
-		return procName;
-		}
+		}		
+		
+
+		/* Это от RCON static void ErrorOutput(string input){			Console.WriteLine("Error: {0}", input);		}
 		//****************************************************	
-		public static IPEndPoint BusyTCPSocket(){			
-		//****************************************************
-		IPEndPoint result = null;
-		IPGlobalProperties properties = IPGlobalProperties.GetIPGlobalProperties();
-		IPEndPoint[]  endPoints = (properties.GetActiveTcpListeners());
-		int i_max=endPoints.Length;
-		for (int i=0;i!=i_max;i++)
-			{
-			if (endPoints[i].Port==srcds_port)
-				{
-				if (endPoints[i].Address.Equals(srcds_ip) || endPoints[i].Address.Equals(System.Net.IPAddress.Parse("0.0.0.0")))
-    				{
-					result=endPoints[i];
-    				break;
-    				}
-				}
-			}
-		return result;
-		}
-		//****************************************************	
-		public static IPEndPoint BusyUDPSocket(){			
-		//****************************************************
-		IPEndPoint result = null;
-		IPGlobalProperties properties = IPGlobalProperties.GetIPGlobalProperties();
-		IPEndPoint[]  endPoints = (properties.GetActiveUdpListeners());
-		int i_max=endPoints.Length;
-		for (int i=0;i!=i_max;i++)
-			{
-			if (endPoints[i].Port==srcds_port)
-				{
-				if (endPoints[i].Address.Equals(srcds_ip) || endPoints[i].Address.Equals(System.Net.IPAddress.Parse("0.0.0.0")))
-    				{
-					result=endPoints[i];
-    				break;
-    				}
-				}
-			}
-		return result;
-		}
-		//****************************************************	
-		public static int GetPortProcessID(int Port){			
-		//****************************************************
-		//C# Sample to list all the active TCP and UDP connections using Windows Form appl
-		//https://code.msdn.microsoft.com/windowsdesktop/C-Sample-to-list-all-the-4817b58f/view/Discussions#content			
-		//Build your own netstat.exe with c#
-		//https://timvw.be/2007/09/09/build-your-own-netstatexe-with-c/
-		int result=0;
-		Process netstat = new Process();
-		netstat.StartInfo.RedirectStandardOutput = true;
-		netstat.StartInfo.RedirectStandardError = true; //ComSpec=C:\Windows\system32\cmd.exe
-		netstat.StartInfo.CreateNoWindow = true;
-		netstat.StartInfo.WorkingDirectory="C:\\Windows\\system32\\";	//SystemRoot=C:\Windows, windir	c:\Windows\System32\findstr.exe c:\Windows\System32\netstat.exe	
-		netstat.StartInfo.FileName = netstat.StartInfo.WorkingDirectory + "cmd.exe";			
-		netstat.StartInfo.UseShellExecute=false;	//https://msdn.microsoft.com/ru-ru/library/system.diagnostics.processstartinfo.workingdirectory(v=vs.110).aspx			
-		//ok netstat.StartInfo.Arguments+="/C netstat -nao | findstr 27015";
-		netstat.StartInfo.Arguments+="/Q /C FOR /F \"tokens=5\" %p IN ('netstat -nao ^| findstr /i LISTENING ^| findstr 27015') do echo %p ";			
-		#if (DEBUG)
-		Debug.WriteLine("GetPortProcessID WorkingDirectory={0}",netstat.StartInfo.WorkingDirectory);
-		Debug.WriteLine("GetPortProcessID FileName={0}",netstat.StartInfo.FileName);
-		Debug.WriteLine(netstat.StartInfo.Arguments);				
-		#endif	
-		try 
-			{					
-		        netstat.Start();
-        	}        	
-    	catch (Exception e)
-        	{
-        		Console.ForegroundColor=ConsoleColor.Red;	        	    
-        	    Console.WriteLine(e.Message);
-        	    Console.ResetColor();
-        	}
-    	
-		string output =netstat.StandardOutput.ReadToEnd();  
-		string err =netstat.StandardError.ReadToEnd();	
-		#if (DEBUG)
-		Debug.WriteLine(output);			
-		Debug.WriteLine(err);			
-		#endif
-    	netstat.WaitForExit();
-    	if (netstat.ExitCode>0) 
-        	{
-    		#if (DEBUG)
-        	Console.ForegroundColor=ConsoleColor.Red;
-        	Console.WriteLine("ERRORLEVEL "+netstat.ExitCode);
-        	Console.ResetColor();
-        	#endif
-        	}
-    	else
-    		result=Int32.Parse(output);
-		return result;
-		}
+		static void ConsoleOutput(string input)	{			Console.WriteLine("Console: {0}", input);		}*/
 		
 	}
 

@@ -10,6 +10,9 @@
     <AssemblyName>srcdsStarter</AssemblyName>
     <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <AppDesignerFolder>Properties</AppDesignerFolder>
+    <NoWin32Manifest>False</NoWin32Manifest>
+    <RunCodeAnalysis>False</RunCodeAnalysis>
+    <SourceAnalysisOverrideSettingsFile>C:\Users\skorik\AppData\Roaming\ICSharpCode\SharpDevelop5\Settings.SourceAnalysis</SourceAnalysisOverrideSettingsFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Platform)' == 'AnyCPU' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -21,6 +24,8 @@
     <Optimize>False</Optimize>
     <CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <StartAction>Project</StartAction>
+    <StartArguments>DOD2018 f:\\soft\\Games\\Steam\\srcds.dod.07122018 dod 10.80.68.220 27015 "" JA2PI</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
     <OutputPath>bin\Release\</OutputPath>
@@ -40,8 +45,14 @@
     <Compile Include="lib\MyLib.NET\FolderIO.cs">
       <Link>FolderIO.cs</Link>
     </Compile>
+    <Compile Include="lib\MyLib.NET\NetIO.cs">
+      <Link>NetIO.cs</Link>
+    </Compile>
     <Compile Include="lib\MyLib.NET\Process.cs">
       <Link>Process.cs</Link>
+    </Compile>
+    <Compile Include="lib\SourceRcon\SourceRconLib\SourceRcon.cs">
+      <Link>SourceRcon.cs</Link>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
