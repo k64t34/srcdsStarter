@@ -229,11 +229,11 @@ namespace srcdsStarter
 			srcds.StartInfo.WorkingDirectory=srcds_folder;			
 			srcds.StartInfo.FileName = srcds_folder + srcds_run;			
 			srcds.StartInfo.UseShellExecute=false;	//https://msdn.microsoft.com/ru-ru/library/system.diagnostics.processstartinfo.workingdirectory(v=vs.110).aspx			
-			srcds.StartInfo.Arguments+="-nocrashdialog -nomaster -console -insecure -maxplayers 32 -tickrate 300 +sv_lan 1";			
 			srcds.StartInfo.Arguments+=" -game "+srcds_mod;
 			srcds.StartInfo.Arguments+=" +ip "+srcds_ip;
 			srcds.StartInfo.Arguments+=" -port "+srcds_port;
 			srcds.StartInfo.Arguments+=" +hostname "+srcds_name;			
+			srcds.StartInfo.Arguments+=" -nocrashdialog -nomaster -console -insecure +sv_lan 1 "+srcds_cmd;
 			srcds.StartInfo.UseShellExecute = false;
 			#if (bbDEBUG)
 				srcds.StartInfo.RedirectStandardOutput = true;
