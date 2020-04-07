@@ -233,7 +233,8 @@ namespace srcdsStarter
 			srcds.StartInfo.Arguments+=" +ip "+srcds_ip;
 			srcds.StartInfo.Arguments+=" -port "+srcds_port;
 			srcds.StartInfo.Arguments+=" +hostname "+srcds_name;			
-			srcds.StartInfo.Arguments+=" -nocrashdialog -nomaster -console -insecure +sv_lan 1 "+srcds_cmd;
+			//srcds.StartInfo.Arguments+=" -nocrashdialog -nomaster -console -insecure +sv_lan 1 "+srcds_cmd;
+			srcds.StartInfo.Arguments += srcds_cmd;
 			srcds.StartInfo.UseShellExecute = false;
 			#if (bbDEBUG)
 				srcds.StartInfo.RedirectStandardOutput = true;
