@@ -1,4 +1,6 @@
 *.bak
+*.pdb
 /srcdsStarter/bin/*
 /srcdsStarter/obj/*
-#/srcdsStarter/lib/*
+/srcdsStarter/lib/*
+/srcdsStarter/.vs/*

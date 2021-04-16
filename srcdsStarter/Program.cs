@@ -1,10 +1,10 @@
 ﻿//[X]  Cycle start srcds
-//[ ] Test param 0<port<65535
-//[ ] Test param ip belong localhost
-//[ ] Hide windows after sucsesfull start srcds
-//[ ]  add command and key
-//[ ]  Check that this host has correct ip,  asighted in  cmd params
-//[ ]  if server have the same parameters then just restart it over rcon
+//TODO:[ ] Test param 0<port<65535
+//TODO:[ ] Test param ip belong localhost
+//[X] Hide windows after sucsesfull start srcds
+//TODO:[ ]  add command and key
+//TODO:[ ]  Check that this host has correct ip,  asighted in  cmd params
+//TODO:[ ]  if server have the same parameters then just restart it over rcon
 
 
 /*
@@ -21,6 +21,7 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Reflection;
+using System.Runtime.InteropServices;
 //using System.Net.Sockets;
 //using System.Timers;
 //using System.Collections.Generic;
@@ -32,6 +33,10 @@ namespace srcdsStarter
 {
 	class Program		
 	{
+		[DllImport("User32.dll", CallingConvention = CallingConvention.StdCall, SetLastError = true)]
+		[return: MarshalAs(UnmanagedType.Bool)]
+		private static extern bool ShowWindow([In] IntPtr hWnd, [In] int nCmdShow);
+
 		//Global
 		static string srcds_name;  
 		static string srcds_folder="";
@@ -41,18 +46,22 @@ namespace srcdsStarter
 		static string srcds_cmd;
 		static string srcds_rcon_password;
 		
-		static string srcds_run="srcds.exe";	
+		static string srcds_run="srcds.exe";
+		const string srds_default_command_line_params = "-nocrashdialog -nomaster -console -insecure +sv_lan 1 -silent -maxplayers 32 +sv_pure 1";
 		static bool ReadyToRun=true; //Flag that condition, enironment, port, ip ready to start srcds.exe
-			
+		const ConsoleColor BGcolor = ConsoleColor.DarkYellow;
+		const ConsoleColor FGcolor = ConsoleColor.Black;
+		public static void Console_ResetColor() { Console.BackgroundColor = BGcolor; Console.ForegroundColor = FGcolor; }
 		public static void Main(string[] args)
 		{
 			string title="Start Source dedicated server ver "+(FileVersionInfo.GetVersionInfo((Assembly.GetExecutingAssembly()).Location)).ProductVersion+": ";
-			Console.Title=title;			
-			Console.ForegroundColor=ConsoleColor.Magenta;
+			Console.Title=title;
+			Console_ResetColor();
+			Console.Clear();
+			Console.ForegroundColor=ConsoleColor.Blue;
 			Console.WriteLine("***************************************************");						
-			Console.WriteLine(title);			
+			Console.WriteLine(title);					
 			Console.WriteLine("***************************************************");			
-			Console.ResetColor();
 			
 			int argsLength=args.Length;
 			if (argsLength < 6) {
@@ -87,7 +96,7 @@ namespace srcdsStarter
 				{
 				Console.ForegroundColor=ConsoleColor.Red;
 				Console.WriteLine("ERR: Folder {0} not found.",srcds_folder);
-				Console.ResetColor();
+				Console_ResetColor();
 				ScriptFinish(true);
 				System.Environment.Exit(4);				
 				}
@@ -95,7 +104,7 @@ namespace srcdsStarter
 				{
 				Console.ForegroundColor=ConsoleColor.Red;
 				Console.WriteLine("ERR: File {0} doesn't exist in folder {1} not found.",srcds_run,srcds_folder);
-				Console.ResetColor();
+				Console_ResetColor();
 				ScriptFinish(true);
 				System.Environment.Exit(4);				
 				}
@@ -103,7 +112,7 @@ namespace srcdsStarter
 				{
 				Console.ForegroundColor=ConsoleColor.Red;
 				Console.WriteLine("ERR: Folder {0} not found in {1}.",srcds_mod,srcds_folder);
-				Console.ResetColor();
+				Console_ResetColor();
 				ScriptFinish(true);
 				System.Environment.Exit(4);				
 				}			
@@ -167,7 +176,7 @@ namespace srcdsStarter
 						if (RCon.Connected)
 					    {
 						 	Console.ForegroundColor=ConsoleColor.Green;								
-							Console.WriteLine("Connected");Console.ResetColor();
+							Console.WriteLine("Connected");Console_ResetColor();
 							
 							try {
 							RCon.ServerCommand("quit");
@@ -178,7 +187,7 @@ namespace srcdsStarter
 						{
 							Console.ForegroundColor=ConsoleColor.Red;
 							Console.WriteLine("ERR: No connection.");
-							Console.ResetColor();
+							Console_ResetColor();
 						}			
 						Thread.Sleep(1000);
 						RCon=null;
@@ -235,6 +244,7 @@ namespace srcdsStarter
 			srcds.StartInfo.Arguments+=" +hostname "+srcds_name;			
 			//srcds.StartInfo.Arguments+=" -nocrashdialog -nomaster -console -insecure +sv_lan 1 "+srcds_cmd;
 			srcds.StartInfo.Arguments += srcds_cmd;
+			srcds.StartInfo.Arguments += " " + srds_default_command_line_params;
 			srcds.StartInfo.UseShellExecute = false;
 			#if (bbDEBUG)
 				srcds.StartInfo.RedirectStandardOutput = true;
@@ -245,7 +255,7 @@ namespace srcdsStarter
 			{
 				Console.ForegroundColor=ConsoleColor.White;
 				Console.Write("{1} \nRun {0} ",srcds_run,DateTime.Now);
-				Console.ResetColor();
+				Console_ResetColor();
 				Console.WriteLine(srcds.StartInfo.Arguments);
 				try 
 					{					
@@ -255,20 +265,24 @@ namespace srcdsStarter
 		        	{
 		        		Console.ForegroundColor=ConsoleColor.Red;	        	    
 		        	    Console.WriteLine(e.Message);
-		        	    Console.ResetColor();
+		        	    Console_ResetColor();
 		        	}
-	        	#if (bbDEBUG)
+#if (bbDEBUG)
 				string output =srcds.StandardOutput.ReadToEnd();  
 				string err =srcds.StandardError.ReadToEnd();	
 				Console.WriteLine(output);			
 				Console.WriteLine(err);			
-				#endif
-	        	srcds.WaitForExit();
+#endif
+					IntPtr handle = Process.GetCurrentProcess().MainWindowHandle;
+					ShowWindow(handle, 6);
+					
+
+					srcds.WaitForExit();
 	        	if (srcds.ExitCode>0) 
 		        	{
 		        	Console.ForegroundColor=ConsoleColor.Red;
 		        	Console.WriteLine("ERRORLEVEL "+srcds.ExitCode);
-		        	Console.ResetColor();
+		        	Console_ResetColor();
 		        	}
 				}
 			}
@@ -283,7 +297,7 @@ namespace srcdsStarter
 			{
 			Console.ForegroundColor=ConsoleColor.White;
 			Console.WriteLine();
-			Console.Write("Press any key to exit . . . ");Console.ResetColor();
+			Console.Write("Press any key to exit . . . ");Console_ResetColor();
 			DateTime timeoutvalue = DateTime.Now.AddSeconds(10);
 			while (DateTime.Now < timeoutvalue)
 				{

@@ -1,3 +1,8 @@
 [submodule "srcdsStarter/lib/MyLib.NET"]
 	path = srcdsStarter/lib/MyLib.NET
 	url = https://github.com/k64t34/mylib.net
+[submodule "srcdsStarter/lib/SourceRcon"]
+	path = srcdsStarter/lib/SourceRcon
+	url = https://github.com/aiusepsi/SourceRcon
+	
+	      
